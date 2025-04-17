@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Tour;
 use Illuminate\Http\Request;
+use App\Models\TourImage;
+
 
 class TourController extends Controller
 {

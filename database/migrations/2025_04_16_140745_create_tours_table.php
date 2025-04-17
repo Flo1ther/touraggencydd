@@ -16,11 +16,13 @@ return new class extends Migration
             $table->string('title');
             $table->text('description');
             $table->decimal('price', 8, 2);
-            $table->foreignId('city_id')->constrained()->onDelete('cascade');
+            $table->foreignId('city_id')->constrained()->nullable()->onDelete('cascade');
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->string('location');
             $table->timestamps();
         });
-
 
     }
 
