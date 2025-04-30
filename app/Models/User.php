@@ -42,7 +42,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-    public function role() {
+    public function role()
+    {
         return $this->belongsTo(Role::class);
     }
 
@@ -51,6 +52,9 @@ class User extends Authenticatable
     }
     public function isAdmin()
     {
-        return $this->role->name === 'admin';
+        return $this->role?->name === 'admin';
+    }
+    public function reviews() {
+        return $this->hasMany(Review::class);
     }
 }

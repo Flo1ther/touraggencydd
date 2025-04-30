@@ -3,36 +3,47 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tour;
-use Illuminate\Http\Request;
 use App\Models\TourImage;
-
-
+use Illuminate\Http\Request;
+use App\Models\City;
+use App\Models\Category;
+use App\Models\Tag;
+use App\Models\Service;
+use App\Models\Post;
 class TourController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    }
+
     /**
-     * Display a listing of the resource.
+     * Показати список турів (тільки для адмінки).
      */
     public function index()
     {
-        $tours = Tour::latest()->paginate(10);
-        return view('tours.index', compact('tours'));
-    }
-    public function publicIndex()
-    {
-        $tours = Tour::with('images')->latest()->paginate(9);
-        return view('tours.public.index', compact('tours'));
+        $tours = Tour::orderBy('created_at', 'desc')->paginate(9);
+
+
+        return view('admin.tours.index', compact('tours'));
+
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Показати форму створення нового туру.
      */
     public function create()
     {
-        return view('tours.create');
+        $cities = City::all();
+        $categories = Category::all();
+        $tags = Tag::all();
+
+        return view('admin.tours.create', compact('cities', 'categories', 'tags'));
     }
 
+
     /**
-     * Store a newly created resource in storage.
+     * Зберегти новий тур у базу даних.
      */
     public function store(Request $request)
     {
@@ -63,25 +74,88 @@ class TourController extends Controller
 
         return redirect()->route('tours.index')->with('success', 'Тур створено!');
     }
+    public function search(Request $request)
+    {
+        $query = Tour::query();
+
+        if ($request->filled('location')) {
+            $query->where('location', 'like', '%' . $request->location . '%');
+        }
+
+        if ($request->filled('from')) {
+            $query->where('location', 'like', '%' . $request->from . '%');
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('start_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('duration_days')) {
+            $query->where('duration_days', $request->duration_days);
+        }
+
+        if ($request->filled('adults')) {
+            $query->where('adults', '>=', $request->adults);
+        }
+
+        if ($request->filled('children')) {
+            $query->where('children', '>=', $request->children);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('price_min')) {
+            $query->where('price', '>=', $request->price_min);
+        }
+
+        if ($request->filled('price_max')) {
+            $query->where('price', '<=', $request->price_max);
+        }
+
+        if ($request->filled('rating_min')) {
+            $query->where('rating', '>=', $request->rating_min);
+        }
+
+        if ($request->filled('rating_max')) {
+            $query->where('rating', '<=', $request->rating_max);
+        }
+
+        if ($request->filled('transport')) {
+            $query->where('transport', $request->transport);
+        }
+
+        if ($request->filled('services')) {
+            foreach ($request->services as $service) {
+                $query->whereJsonContains('services', $service);
+            }
+        }
+
+        $tours = $query->get();
+
+        return view('tours.index', compact('tours'));
+    }
 
     /**
-     * Display the specified resource.
+     * Показати конкретний тур в адмінці (можна доробити за потреби).
      */
     public function show(Tour $tour)
     {
-        return view('tours.edit', compact('tour'));
+        $tour->load('images', 'category', 'city', 'tags');
+        return view('public.tours.show', compact('tour'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Показати форму редагування туру.
      */
     public function edit(Tour $tour)
     {
-        //
+        return view('admin.tours.edit', compact('tour'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Оновити тур.
      */
     public function update(Request $request, Tour $tour)
     {
@@ -100,11 +174,11 @@ class TourController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Видалити тур.
      */
     public function destroy(Tour $tour)
     {
         $tour->delete();
-        return redirect()->route('tours.index')->with('success', 'Тур видалено!');
+        return redirect()->route('admin.tours.index')->with('success', 'Тур видалено!');
     }
 }

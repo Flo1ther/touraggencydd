@@ -9,12 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->foreignId('role_id')->nullable()->constrained()->onDelete('set null');
         });
     }
+
 
     /**
      * Reverse the migrations.

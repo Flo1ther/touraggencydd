@@ -1,3 +1,5 @@
+<?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Post;
@@ -6,52 +8,74 @@ use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
-public function index()
-{
-$posts = Post::latest()->get();
-return view('posts.index', compact('posts'));
-}
+    public function index()
+    {
+        $posts = Post::latest()->get();
+        return view('admin.posts.index', compact('posts'));
+    }
 
-public function create()
-{
-return view('posts.create');
-}
+    public function create()
+    {
+        return view('admin.posts.create');
+    }
 
-public function store(Request $request)
-{
-$request->validate([
-'title' => 'required|string|max:255',
-'content' => 'required|string',
-'slug' => 'required|unique:posts,slug'
-]);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
 
-Post::create($request->all());
+        $validated['slug'] = Str::slug($validated['title']);
 
-return redirect()->route('posts.index')->with('success', 'Пост створено успішно.');
-}
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('posts', 'public');
+        }
 
-public function edit(Post $post)
-{
-return view('posts.edit', compact('post'));
-}
+        Post::create($validated);
 
-public function update(Request $request, Post $post)
-{
-$request->validate([
-'title' => 'required|string|max:255',
-'content' => 'required|string',
-'slug' => 'required|unique:posts,slug,' . $post->id
-]);
+        return redirect()->route('admin.posts.index')->with('success', 'Пост створено успішно!');
+    }
 
-$post->update($request->all());
+    public function edit(Post $post)
+    {
+        return view('admin.posts.edit', compact('post'));
+    }
 
-return redirect()->route('posts.index')->with('success', 'Пост оновлено успішно.');
-}
+    public function update(Request $request, Post $post)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
 
-public function destroy(Post $post)
-{
-$post->delete();
+        $slug = Str::slug($validated['title']);
+        if ($slug !== $post->slug) {
+            $slugExists = Post::where('slug', $slug)->where('id', '!=', $post->id)->exists();
+            if ($slugExists) {
+                return back()->withErrors(['title' => 'Slug, згенерований із заголовка, вже існує. Спробуйте інший заголовок.'])->withInput();
+            }
+            $validated['slug'] = $slug;
+        } else {
+            $validated['slug'] = $post->slug;
+        }
 
-return redirect()->route('posts.index')->with('success', 'Пост видалено.');
-}
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('posts', 'public');
+        } else {
+            $validated['image'] = $post->image;
+        }
+
+        $post->update($validated);
+
+        return redirect()->route('admin.posts.index')->with('success', 'Пост оновлено успішно.');
+    }
+
+    public function destroy(Post $post)
+    {
+        $post->delete();
+        return redirect()->route('admin.posts.index')->with('success', 'Пост видалено.');
+    }
 }
